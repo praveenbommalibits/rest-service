@@ -102,3 +102,76 @@ GET localhost:8080/reply/helloworld
     message: "helloword"
 }
 ```
+
+# String Reply Service V2 API
+
+The String Reply Service V2 API provides enhanced functionality to process input strings based on specified rules and return the processed output. This version supports additional rules and provides a modular and extensible architecture to accommodate future requirements.
+
+## Overview
+
+The String Reply Service V2 API builds upon the functionality of the V1 API by introducing support for processing input strings based on specified rules. Rules are applied sequentially to the input string, with each rule representing a string operation. Currently, the supported rules are:
+
+- Rule 1: Reverse the string.
+- Rule 2: Encode the string via MD5 hash algorithm and display as hex.
+`In future we can introduce new rules, we can able to adopt them with minimal code changes`
+
+## Endpoints
+
+### V2 Endpoint
+
+- **GET /v2/reply/{rule}-{input}**: Processes the input string based on the specified rule and returns the processed output.
+
+Supported rules:
+- `1`: Reverse the string.
+- `2`: Encode the string via MD5 hash algorithm and display as hex.
+
+Example usage:
+```
+GET /v2/reply/11-kbzw9ru
+{
+"data": "ur9wzbk"
+}
+
+GET /v2/reply/12-kbzw9ru
+{
+"data": "0fafeaae780954464c1b29f765861fad"
+}
+```
+
+
+## Implementation Details
+
+### Controller
+
+The `ReplyV2Controller` class is responsible for handling requests to the V2 API endpoints. It invokes the `ReplyService` to process the input string based on the specified rule and constructs the response.
+
+### Service
+
+The `ReplyService` class contains the business logic for processing input strings based on rules. It maintains a map of rule processors, where each rule is associated with a specific string operation. This design allows for easy addition of new rule processors to support future requirements.
+
+### Rule Processors
+
+Rule processors are implemented as functions within the `ReplyService` class. Each rule processor performs a specific string operation, such as reversing the string or encoding it via MD5. New rule processors can be added to support additional rules in `future releases`.
+
+### Error Handling
+
+The API performs robust error handling to handle invalid inputs and rules. If an invalid input or rule is provided, the API returns an appropriate error response with a status code of 400 and a message indicating the error.
+
+## Enhancements and Future Support
+
+The String Reply Service V2 API is designed to be extensible and adaptable to future requirements. Key enhancements and features include:
+
+- **Modular Architecture**: The service uses a modular architecture, allowing easy addition of new rule processors and features with minimal code changes.
+- **Rule Processor Pattern**: Rules are processed using a rule processor pattern, enabling easy addition of new rule processing logic.
+- **Robust Error Handling**: The API provides robust error handling for invalid inputs and rules, ensuring proper validation and error reporting.
+
+## Testing
+
+Unit tests are provided to ensure the correctness of individual rule processing logic and API endpoints. The tests cover various scenarios, including valid inputs, invalid inputs, and invalid rules, to validate the functionality of the service.
+
+
+## Authors
+
+- Praveen Kumar Bommali
+- praveenkumarbommali@gmail.com
+
