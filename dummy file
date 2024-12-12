@@ -1,190 +1,125 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import static org.mockito.Mockito.*;
+// OrcusCaller.java
+import io.orkes.conductor.client.ApiClient;
+import io.orkes.conductor.client.WorkflowClient;
+import io.orkes.conductor.client.WorkflowResource;
+import io.orkes.conductor.client.model.StartWorkflowRequest;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
 
-import io.netflix.conductor.common.metadata.workflow.StartWorkflowRequest;
-import io.netflix.conductor.client.automator.TaskClient;
-import io.netflix.conductor.client.workflow.WorkflowClient;
-import io.netflix.conductor.client.http.WorkflowRun;
+public class OrcusCaller {
+    private static ApiClient apiClient; // Static ApiClient
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class TestOrkesCallerTest {
-
-    @Mock
-    private APIClient mockApiClient;
-
-    @Mock
-    private WorkflowResources mockWorkflowResources;
-
-    private TestOrkesCaller testOrkesCaller;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        testOrkesCaller = new TestOrkesCaller();
+    // Initialize Orcus by setting up the API client
+    public void initializeOrcus(Map<String, String> config) {
+        if (apiClient == null) {
+            // Normally, you'd use the real ApiClient here
+            apiClient = new ApiClient(); // Placeholder for real implementation
+        }
     }
 
-    @Test
-    void testCallOrkes() throws Exception {
-        // Arrange
-        Map<String, String> inputMap = new HashMap<>();
-        inputMap.put("key1", "value1");
+    // Call Orcus workflow
+    public Map<String, String> callOrcus(
+            Map<String, String> inputMap, 
+            Object dcRequest, 
+            String workflowName, 
+            Result result
+    ) throws Throwable {
+        if (apiClient == null) {
+            throw new IllegalStateException("ApiClient is not initialized.");
+        }
 
-        Result result = new Result();  // Create a dummy result object if needed
-        DataControllerRequest dataControllerRequest = mock(DataControllerRequest.class);
+        // Create workflow clients and resources
+        WorkflowClient workflowClient = apiClient.getWorkflowClient();
+        WorkflowResource workflowResource = workflowClient.getWorkflowResource();
 
-        // Prepare a dummy workflow run
-        WorkflowRun mockWorkflowRun = new WorkflowRun();
-        mockWorkflowRun.setStatus("COMPLETED");
+        // Create and execute workflow request
+        StartWorkflowRequest request = new StartWorkflowRequest();
+        request.setName(workflowName);
+        request.setInput(inputMap);
+        String workflowResult = workflowResource.executeWorkflow(request);
 
-        when(mockApiClient.getWorkflowClient()).thenReturn(mock(WorkflowClient.class));
-        when(mockApiClient.getWorkflowClient().getWorkflowResources()).thenReturn(mockWorkflowResources);
-        when(mockWorkflowResources.executeWorkflow(any())).thenReturn(mockWorkflowRun);
-
-        // Act
-        Map<String, String> response = testOrkesCaller.callOrkes(inputMap, dataControllerRequest, result);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals("COMPLETED", response.get("workflowStatus")); // Ensure the mocked workflow run status is returned
-
-        // Verify interactions
-        verify(mockApiClient.getWorkflowClient(), times(1)).getWorkflowResources();
-        verify(mockWorkflowResources, times(1)).executeWorkflow(any());
+        // Return results
+        Map<String, String> response = new HashMap<>();
+        response.put("workflowResult", workflowResult);
+        return response;
     }
 }
 
-
-
-import io.netflix.conductor.client.workflow.WorkflowClient;
-import io.netflix.conductor.client.http.WorkflowResources;
-
-public class DummyAPIClient extends APIClient {
-
+// TestApiClient.java
+class TestApiClient extends ApiClient {
     @Override
     public WorkflowClient getWorkflowClient() {
-        return new DummyWorkflowClient();
+        return new TestWorkflowClient();
     }
 }
 
-
-import io.netflix.conductor.client.http.WorkflowResources;
-
-public class DummyWorkflowClient extends WorkflowClient {
-
+// TestWorkflowClient.java
+class TestWorkflowClient extends WorkflowClient {
     @Override
-    public WorkflowResources getWorkflowResources() {
-        return new DummyWorkflowResources();
+    public WorkflowResource getWorkflowResource() {
+        return new TestWorkflowResource();
     }
 }
 
-
-
-
-import io.netflix.conductor.client.http.WorkflowRun;
-import io.netflix.conductor.common.metadata.workflow.StartWorkflowRequest;
-
-public class DummyWorkflowResources extends WorkflowResources {
-
+// TestWorkflowResource.java
+class TestWorkflowResource extends WorkflowResource {
     @Override
-    public WorkflowRun executeWorkflow(StartWorkflowRequest request) {
-        // Create a dummy WorkflowRun response
-        WorkflowRun workflowRun = new WorkflowRun();
-        workflowRun.setStatus("COMPLETED"); // Simulate a successful workflow run
-        workflowRun.setOutput(Map.of("key", "value")); // Add some dummy output
-        return workflowRun;
+    public String executeWorkflow(StartWorkflowRequest request) {
+        // Simulate execution and return a test result
+        return "TEST_WORKFLOW_EXECUTION_ID";
     }
 }
 
+// Result.java
+class Result {
+    // Placeholder for the Result class implementation
+    // Add properties and methods as required
+}
 
+// OrcusCallerTest.java
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
+import java.lang.reflect.Field;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+public class OrcusCallerTest {
 
-class TestOrkesCallerTest {
+    private static TestApiClient testApiClient; // Test-specific ApiClient
+    private OrcusCaller orcusCaller;
 
-    private TestOrkesCaller testOrkesCaller;
+    @BeforeAll
+    public static void setUpClass() throws Exception {
+        // Create a test-specific ApiClient
+        testApiClient = new TestApiClient();
+
+        // Inject the test ApiClient into the static variable of OrcusCaller
+        Field apiClientField = OrcusCaller.class.getDeclaredField("apiClient");
+        apiClientField.setAccessible(true);
+        apiClientField.set(null, testApiClient);
+    }
 
     @BeforeEach
-    void setUp() {
-        testOrkesCaller = new TestOrkesCaller();
+    public void setUp() {
+        // Initialize OrcusCaller (if necessary)
+        orcusCaller = new OrcusCaller();
     }
 
     @Test
-    void testCallOrkes() throws Exception {
-        // Arrange
-        Map<String, String> inputMap = new HashMap<>();
-        inputMap.put("key1", "value1");
+    public void testCallOrcus() throws Throwable {
+        // Prepare test input data
+        Map<String, String> inputMap = Map.of("key", "value");
+        Result result = new Result();
 
-        Result result = new Result();  // Create a dummy result object if needed
-        DataControllerRequest dataControllerRequest = new DataControllerRequest(); // Use actual or dummy implementation
+        // Call the method to test
+        Map<String, String> response = orcusCaller.callOrcus(inputMap, null, "TEST_WORKFLOW", result);
 
-        // Use DummyAPIClient to simulate APIClient
-        DummyAPIClient dummyApiClient = new DummyAPIClient();
-
-        // Inject the dummy API client into the base context or however it's used in your code
-        BaseContext baseContext = BaseContext.getInstance();
-        baseContext.setApiClient(dummyApiClient);
-
-        // Act
-        Map<String, String> response = testOrkesCaller.callOrkes(inputMap, dataControllerRequest, result);
-
-        // Assert
+        // Validate the response
         assertNotNull(response);
-        assertEquals("COMPLETED", response.get("workflowStatus")); // Ensure the dummy workflow status is returned
-        assertEquals("value", response.get("key")); // Ensure the dummy output is returned
-    }
-}
-
-
-import java.util.HashMap;
-import java.util.Map;
-
-import com.konylabs.middleware.controller.DataControllerRequest;
-import com.konylabs.middleware.dataobject.Result;
-
-public class DummyOrkesCaller extends OrkesCaller {
-
-    @Override
-    public Map<String, String> callOrkes(Map<String, String> inputMap, DataControllerRequest dcRequest, Result result) {
-        // Create a dummy response to simulate the real Orkes caller
-        Map<String, String> dummyResponse = new HashMap<>();
-        dummyResponse.put("workflowStatus", "COMPLETED");
-        dummyResponse.put("dummyKey", "dummyValue");
-        return dummyResponse;
-    }
-}
-
-
-class pass {
-
-    private pass pass;
-
-    @BeforeEach
-    void setUp() {
-        // Use the DummyOrkesCaller instead of the real one
-        DummyOrkesCaller dummyOrkesCaller = new DummyOrkesCaller();
-        pass = new pass(dummyOrkesCaller);
-    }
-
-
-
-
-
-public class Testapass extends pass {
-
-    @Override
-    protected OrkesCaller createOrkesCaller() {
-        return new DummyOrkesCaller();
+        assertEquals("TEST_WORKFLOW_EXECUTION_ID", response.get("workflowResult"));
     }
 }
